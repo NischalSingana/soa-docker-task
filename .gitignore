@@ -1,0 +1,23 @@
+# Eclipse / STS workspace metadata
+.metadata/
+.recommenders/
+.settings/
+.project
+.classpath
+
+# Maven build targets
+target/
+**/target/
+
+# Logs and runtime artifacts
+*.log
+*.class
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Frontend build outputs
+frontend/dist/
+dist/
+node_modules/
