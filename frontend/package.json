@@ -1,0 +1,9 @@
+{
+  "name": "docker-frontend-2400030188",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Podcast Episode Management Frontend",
+  "scripts": {
+    "build": "mkdir -p dist && cp index.html dist/ && cp -r css dist/ && cp -r js dist/"
+  }
+}

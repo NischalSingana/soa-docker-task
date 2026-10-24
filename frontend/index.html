@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Podcast Episode Management &bull; 2400030188</title>
+  <meta name="description" content="Enterprise Full-Stack Podcast Episode Management System for SOA Exam Task 2400030188 built with Spring Boot, PostgreSQL, Docker, and Shadcn pure black design.">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Custom Modern Shadcn Dark Theme CSS -->
+  <link rel="stylesheet" href="css/styles.css?v=3.0">
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container-custom" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Minimalist Shadcn Navigation Bar -->
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="d-flex align-items-center gap-3">
+        <!-- Brand Logo -->
+        <a class="brand-wrap" href="#">
+          <div class="brand-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-text">PodcastHub</div>
+            <div class="brand-sub">Enterprise Registry</div>
+          </div>
+        </a>
+
+        <!-- Main Nav Links -->
+        <nav class="d-none d-md-flex align-items-center gap-1 ps-3 border-start" style="border-color: var(--border-default) !important;">
+          <a class="nav-link-item active" href="#episodesSection">Episodes</a>
+          <a class="nav-link-item" href="#addSection">Add Episode</a>
+          <a class="nav-link-item" id="swaggerLink" href="http://localhost:8081/swagger-ui/index.html" target="_blank" rel="noopener noreferrer" title="View OpenAPI / Swagger Specification">
+            Swagger API <i class="bi bi-arrow-up-right ms-1" style="font-size: 0.65rem;"></i>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Right Metadata & Actions Cluster -->
+      <div class="nav-right-cluster">
+        <!-- Quick Seed Demo Data Button -->
+        <button type="button" class="btn-shadcn-ghost d-none d-sm-inline-flex" id="btnQuickSeed" title="Seed 4 realistic demonstration episodes">
+          <i class="bi bi-stars text-warning"></i> Seed Demo Data
+        </button>
+
+        <span class="badge-student-pill">
+          <span style="color: var(--zinc-500); font-weight: 500;">ID</span> 2400030188
+        </span>
+
+        <span id="backendStatusBadge" class="badge-status-pill">
+          <span class="status-dot-green"></span> Connected
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Metrics Overview Section -->
+  <section class="app-container pt-4 pb-3" id="analyticsSection">
+    <div class="row align-items-end justify-content-between gy-3 mb-3">
+      <div class="col-lg-5">
+        <h1 class="h4 fw-bold text-white mb-1.5" style="letter-spacing: -0.03em;">Podcast Episode Registry</h1>
+        <p class="mb-0" style="color: var(--zinc-400); font-size: 0.85rem;">
+          Production-grade microservice dashboard for managing episode catalog records, streaming analytics, and database keys.
+        </p>
+      </div>
+      
+      <!-- Metrics Grid -->
+      <div class="col-lg-7">
+        <div class="row g-2">
+          <div class="col-6 col-md-3">
+            <div class="metric-card">
+              <i class="bi bi-collection-play metric-icon-bg"></i>
+              <div class="metric-label">Episodes</div>
+              <div class="metric-value" id="statTotalEpisodes">0</div>
+              <div class="metric-sub">Total records</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="metric-card">
+              <i class="bi bi-clock-history metric-icon-bg"></i>
+              <div class="metric-label">Duration</div>
+              <div class="metric-value" id="statTotalDuration">0m</div>
+              <div class="metric-sub">Catalog airtime</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="metric-card">
+              <i class="bi bi-people metric-icon-bg"></i>
+              <div class="metric-label">Hosts</div>
+              <div class="metric-value" id="statTotalHosts">0</div>
+              <div class="metric-sub">Active speakers</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="metric-card">
+              <i class="bi bi-bar-chart metric-icon-bg"></i>
+              <div class="metric-label">Avg Length</div>
+              <div class="metric-value" id="statAvgDuration">0m</div>
+              <div class="metric-sub">Per episode</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Work Area -->
+  <main class="app-container pb-5">
+    
+    <!-- Add Record Section -->
+    <section id="addSection" class="shadcn-card mb-4" aria-labelledby="addRecordHeading">
+      <div class="shadcn-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <h2 id="addRecordHeading" class="shadcn-title">Register Episode</h2>
+          <p class="shadcn-desc">Submit new episode data. Primary key ID is auto-assigned by PostgreSQL.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn-shadcn-ghost" id="btnFillSample" title="Prefill sample values into form">
+            <i class="bi bi-magic me-1"></i> Sample Autofill
+          </button>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <!-- Form Feedback Banner -->
+        <div id="formAlertBox" class="alert d-none" role="alert" style="background-color: var(--zinc-900); border: 1px solid var(--border-default); color: var(--white); font-size: 0.85rem; border-radius: var(--radius-sm);"></div>
+
+        <form id="addEpisodeForm" novalidate>
+          <div class="row g-3">
+            
+            <!-- Episode Title -->
+            <div class="col-md-6">
+              <label for="episodeTitle" class="form-label">
+                <span>Episode Title <span style="color: #ef4444;">*</span></span>
+                <span id="titleCounter" style="font-size: 0.725rem; color: var(--zinc-500);">0/150</span>
+              </label>
+              <span id="titleHint" class="field-hint">e.g., Architecting Cloud-Native Microservices with Docker</span>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="episodeTitle" 
+                name="episodeTitle"
+                placeholder="Enter compelling episode title..." 
+                required 
+                minlength="2" 
+                maxlength="150"
+                aria-describedby="titleHint titleError"
+                autocomplete="off"
+              >
+              <div id="titleError" class="invalid-feedback-custom">
+                Please enter an episode title between 2 and 150 characters.
+              </div>
+            </div>
+
+            <!-- Host Name -->
+            <div class="col-md-6">
+              <label for="hostName" class="form-label">
+                <span>Host Name <span style="color: #ef4444;">*</span></span>
+                <span id="hostCounter" style="font-size: 0.725rem; color: var(--zinc-500);">0/100</span>
+              </label>
+              <span id="hostHint" class="field-hint">e.g., Dr. Sarah Jenkins, Marcus Vance</span>
+              <input 
+                type="text" 
+                class="form-control" 
+                id="hostName" 
+                name="hostName"
+                placeholder="Enter host or interviewer name..." 
+                required 
+                minlength="2" 
+                maxlength="100"
+                aria-describedby="hostHint hostError"
+                autocomplete="off"
+              >
+              <div id="hostError" class="invalid-feedback-custom">
+                Please enter a host name between 2 and 100 characters.
+              </div>
+            </div>
+
+            <!-- Duration -->
+            <div class="col-md-6">
+              <label for="durationMinutes" class="form-label">
+                <span>Duration (Minutes) <span style="color: #ef4444;">*</span></span>
+                <span style="font-size: 0.725rem; color: var(--zinc-500);">Range: 1 – 600</span>
+              </label>
+              <span id="durationHint" class="field-hint">Total recording runtime in integer minutes</span>
+              <input 
+                type="number" 
+                class="form-control" 
+                id="durationMinutes" 
+                name="durationMinutes"
+                placeholder="e.g., 45" 
+                required 
+                min="1" 
+                max="600"
+                aria-describedby="durationHint durationError"
+              >
+              <div id="durationError" class="invalid-feedback-custom">
+                Duration must be a positive integer between 1 and 600 minutes.
+              </div>
+            </div>
+
+            <!-- Release Date -->
+            <div class="col-md-6">
+              <label for="releaseDate" class="form-label">
+                <span>Release Date <span style="color: #ef4444;">*</span></span>
+                <span style="font-size: 0.725rem; color: var(--zinc-500);">ISO 8601</span>
+              </label>
+              <span id="dateHint" class="field-hint">Published broadcast date (YYYY-MM-DD)</span>
+              <input 
+                type="date" 
+                class="form-control" 
+                id="releaseDate" 
+                name="releaseDate"
+                required
+                aria-describedby="dateHint dateError"
+              >
+              <div id="dateError" class="invalid-feedback-custom">
+                Please select a valid publication date.
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Constraint Note -->
+          <div class="d-flex align-items-center gap-2 mt-3 p-2.5 rounded" style="background-color: var(--zinc-900); border: 1px solid var(--border-default); font-size: 0.8rem; color: var(--zinc-400);">
+            <i class="bi bi-shield-check text-white fs-6"></i>
+            <span><strong>Backend Requirement:</strong> The client payload omits the ID field. IDs are generated and incremented solely by PostgreSQL database sequence.</span>
+          </div>
+
+          <!-- Submit / Reset Action Buttons -->
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn-shadcn-primary" id="btnSubmitEpisode">
+              <span id="btnSubmitSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" style="width: 14px; height: 14px;"></span>
+              <span id="btnSubmitText"><i class="bi bi-plus-circle me-1"></i> Save Episode</span>
+            </button>
+            <button type="reset" class="btn-shadcn-secondary" id="btnResetForm">
+              Reset Form
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Display Records Section -->
+    <section id="episodesSection" class="shadcn-card" aria-labelledby="episodesHeading">
+      
+      <!-- Toolbar Header -->
+      <div class="shadcn-card-header">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h2 id="episodesHeading" class="shadcn-title">Catalog Episodes</h2>
+              <span id="tableRecordCountBadge" class="badge-mono-id">0 records</span>
+            </div>
+            <p class="shadcn-desc">Synchronized with backend REST API endpoint <code>GET /DisplayAll</code></p>
+          </div>
+
+          <!-- Action & View Controls -->
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            
+            <!-- Search Bar with Shortcut hint -->
+            <div class="input-group input-group-sm" style="width: 250px;">
+              <span class="input-group-text border-end-0" style="background-color: var(--bg-input); border-color: var(--border-default); color: var(--zinc-500);">
+                <i class="bi bi-search"></i>
+              </span>
+              <input 
+                type="text" 
+                id="searchInput" 
+                class="form-control border-start-0 border-end-0" 
+                placeholder="Search episodes..." 
+                aria-label="Filter episodes by title, host, or id"
+              >
+              <span class="input-group-text border-start-0" style="background-color: var(--bg-input); border-color: var(--border-default);">
+                <button type="button" class="btn p-0 d-none text-muted" id="btnClearSearch" title="Clear search">
+                  <i class="bi bi-x"></i>
+                </button>
+                <span class="search-shortcut-badge ms-1 d-none d-sm-inline">⌘K</span>
+              </span>
+            </div>
+
+            <!-- Sort Dropdown -->
+            <div class="dropdown">
+              <button class="btn-shadcn-secondary dropdown-toggle" type="button" id="sortDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.38rem 0.75rem; font-size: 0.8125rem;">
+                <i class="bi bi-arrow-down-up me-1"></i> <span id="currentSortLabel">Newest Date</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-dark-shadcn dropdown-menu-end" aria-labelledby="sortDropdownBtn">
+                <li><a class="dropdown-item dropdown-item-shadcn active" href="#" data-sort="date-desc"><i class="bi bi-calendar-event"></i> Release Date (Newest)</a></li>
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" data-sort="date-asc"><i class="bi bi-calendar-check"></i> Release Date (Oldest)</a></li>
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" data-sort="duration-desc"><i class="bi bi-hourglass-top"></i> Duration (Longest)</a></li>
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" data-sort="duration-asc"><i class="bi bi-hourglass-bottom"></i> Duration (Shortest)</a></li>
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" data-sort="title-asc"><i class="bi bi-sort-alpha-down"></i> Title (A &rarr; Z)</a></li>
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" data-sort="title-desc"><i class="bi bi-sort-alpha-up"></i> Title (Z &rarr; A)</a></li>
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" data-sort="id-asc"><i class="bi bi-sort-numeric-down"></i> ID (Ascending)</a></li>
+              </ul>
+            </div>
+
+            <!-- Host Filter Dropdown -->
+            <div class="dropdown">
+              <button class="btn-shadcn-secondary dropdown-toggle" type="button" id="hostFilterBtn" data-bs-toggle="dropdown" aria-expanded="false" style="padding: 0.38rem 0.75rem; font-size: 0.8125rem;">
+                <i class="bi bi-funnel me-1"></i> <span id="currentHostFilterLabel">All Hosts</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-dark-shadcn dropdown-menu-end" id="hostFilterMenu" aria-labelledby="hostFilterBtn" style="max-height: 240px; overflow-y: auto;">
+                <li><a class="dropdown-item dropdown-item-shadcn active" href="#" data-host="">All Hosts</a></li>
+              </ul>
+            </div>
+
+            <!-- Export Tools Dropdown -->
+            <div class="dropdown">
+              <button class="btn-shadcn-ghost dropdown-toggle" type="button" id="exportDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-download me-1"></i> Export
+              </button>
+              <ul class="dropdown-menu dropdown-menu-dark-shadcn dropdown-menu-end" aria-labelledby="exportDropdownBtn">
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" id="btnExportCSV"><i class="bi bi-filetype-csv text-success"></i> Export as CSV</a></li>
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" id="btnExportJSON"><i class="bi bi-filetype-json text-info"></i> Export as JSON</a></li>
+                <li><a class="dropdown-item dropdown-item-shadcn" href="#" id="btnCopyMarkdown"><i class="bi bi-clipboard"></i> Copy Markdown Table</a></li>
+              </ul>
+            </div>
+
+            <!-- Table / Grid View Switcher -->
+            <div class="filter-chip-group">
+              <button type="button" class="view-toggle-btn active" id="btnViewTable" title="Table View" aria-label="Table View">
+                <i class="bi bi-table"></i>
+              </button>
+              <button type="button" class="view-toggle-btn" id="btnViewGrid" title="Card Grid View" aria-label="Card Grid View">
+                <i class="bi bi-grid-fill"></i>
+              </button>
+            </div>
+
+            <!-- Refresh Button -->
+            <button type="button" class="btn-shadcn-ghost" id="btnRefreshEpisodes" title="Refresh records from backend" aria-label="Refresh records">
+              <i class="bi bi-arrow-repeat" id="refreshIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Duration Filter Chips Row -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-2 border-top" style="border-color: var(--border-subtle) !important;">
+          <div class="d-flex align-items-center gap-2">
+            <span style="font-size: 0.75rem; color: var(--zinc-500); font-weight: 500;">Runtime:</span>
+            <div class="filter-chip-group" role="group" aria-label="Duration filters">
+              <button type="button" class="filter-chip active" data-duration="all">All</button>
+              <button type="button" class="filter-chip" data-duration="short">&lt; 30m (Quick)</button>
+              <button type="button" class="filter-chip" data-duration="medium">30 &ndash; 60m (Standard)</button>
+              <button type="button" class="filter-chip" data-duration="long">&gt; 60m (Deep Dive)</button>
+            </div>
+          </div>
+
+          <div id="filterActiveNotice" class="d-none align-items-center gap-2" style="font-size: 0.775rem; color: var(--zinc-400);">
+            <span>Filtered results active</span>
+            <button type="button" class="btn btn-link p-0 text-white text-decoration-none" id="btnResetFilters" style="font-size: 0.775rem;">Reset filters</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-0 position-relative">
+        
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-5 d-none">
+          <div class="spinner-border text-light" role="status" style="width: 24px; height: 24px; border-width: 2px;">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2 mb-0" style="color: var(--zinc-500); font-size: 0.85rem;">Retrieving records from PostgreSQL database...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state d-none">
+          <div class="empty-icon-wrap">
+            <i class="bi bi-inbox"></i>
+          </div>
+          <h3 class="fw-semibold text-white" style="font-size: 1.05rem;">No Episodes Available</h3>
+          <p class="mx-auto mb-3" style="color: var(--zinc-400); max-width: 380px; font-size: 0.85rem;">
+            The episode registry is currently empty or no entries match your search criteria. You can register an episode or seed demonstration data.
+          </p>
+          <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn-shadcn-primary" id="btnEmptySeed">
+              <i class="bi bi-stars me-1"></i> Seed 4 Demo Episodes
+            </button>
+            <a href="#addSection" class="btn-shadcn-secondary text-decoration-none">
+              Register Episode
+            </a>
+          </div>
+        </div>
+
+        <!-- Table View Container (Modern Web Guidance responsive-table compliant) -->
+        <div class="table-wrapper" id="tableContainer" tabindex="0" role="region" aria-label="Podcast episodes data table">
+          <table class="shadcn-table mb-0" id="episodesTable">
+            <thead>
+              <tr>
+                <th scope="col" style="width: 44px; text-align: center;">
+                  <input type="checkbox" class="form-check-input-shadcn" id="selectAllCheckbox" title="Select all visible episodes" aria-label="Select all episodes">
+                </th>
+                <th scope="col" class="sortable" data-col="id" style="width: 85px;">
+                  ID <i class="bi bi-chevron-expand ms-1 text-muted" style="font-size: 0.65rem;"></i>
+                </th>
+                <th scope="col" class="sortable" data-col="title">
+                  Episode Title <i class="bi bi-chevron-expand ms-1 text-muted" style="font-size: 0.65rem;"></i>
+                </th>
+                <th scope="col" class="sortable" data-col="host">
+                  Host Name <i class="bi bi-chevron-expand ms-1 text-muted" style="font-size: 0.65rem;"></i>
+                </th>
+                <th scope="col" class="sortable" data-col="duration" style="width: 140px;">
+                  Duration <i class="bi bi-chevron-expand ms-1 text-muted" style="font-size: 0.65rem;"></i>
+                </th>
+                <th scope="col" class="sortable" data-col="date" style="width: 130px;">
+                  Release Date <i class="bi bi-chevron-expand ms-1 text-muted" style="font-size: 0.65rem;"></i>
+                </th>
+                <th scope="col" class="text-end" style="width: 160px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="episodesTableBody">
+              <!-- Dynamically populated via app.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Grid View Container (Toggled via button) -->
+        <div id="gridContainer" class="podcast-grid d-none">
+          <!-- Dynamically populated cards via app.js -->
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Floating Bulk Actions Bar -->
+  <aside class="bulk-actions-bar" id="bulkActionsBar" aria-label="Bulk actions toolbar">
+    <span class="bulk-count-badge" id="bulkCountBadge">0 selected</span>
+    <button type="button" class="btn-shadcn-ghost" id="btnBulkExport" title="Export selected episodes as CSV">
+      <i class="bi bi-download"></i> Export CSV
+    </button>
+    <button type="button" class="btn-shadcn-destructive" id="btnBulkDelete" title="Delete selected episodes">
+      <i class="bi bi-trash"></i> Delete Selected
+    </button>
+    <button type="button" class="btn-action-icon" id="btnBulkDeselect" title="Deselect all" aria-label="Deselect all">
+      <i class="bi bi-x"></i>
+    </button>
+  </aside>
+
+  <!-- Interactive Episode Audio Player Modal -->
+  <div class="modal fade" id="audioPlayerModal" tabindex="-1" aria-labelledby="playerModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content modal-content-shadcn">
+        <div class="modal-header modal-header-shadcn">
+          <div class="d-flex align-items-center gap-2">
+            <div style="width: 8px; height: 8px; background-color: #22c55e; border-radius: 50%;"></div>
+            <h5 class="modal-title fw-semibold text-white fs-6 mb-0" id="playerModalTitle">Now Playing &bull; Episode Preview</h5>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          
+          <!-- Episode Info Header -->
+          <div class="d-flex align-items-center gap-3 mb-4">
+            <div style="width: 58px; height: 58px; border-radius: var(--radius-md); background: linear-gradient(135deg, #18181b 0%, #3f3f46 100%); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--white); flex-shrink: 0;">
+              <i class="bi bi-soundwave"></i>
+            </div>
+            <div>
+              <div class="badge-mono-id mb-1" id="playerEpisodeId">#0</div>
+              <h4 class="h5 fw-bold text-white mb-1" id="playerEpisodeTitle">Title</h4>
+              <div class="small" style="color: var(--zinc-400);">
+                Hosted by <strong class="text-white" id="playerEpisodeHost">Host</strong> &bull; Released on <span id="playerEpisodeDate">Date</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Waveform Visualizer -->
+          <div class="p-3 rounded mb-3" style="background-color: var(--zinc-900); border: 1px solid var(--border-default);">
+            <div class="audio-visualizer-bars" id="audioWaveform">
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+            </div>
+
+            <!-- Scrubber -->
+            <div class="player-scrubber mt-3" id="playerScrubber" title="Scrub audio timeline">
+              <div class="player-progress" id="playerProgressBar" style="width: 35%;">
+                <div class="player-scrub-handle"></div>
+              </div>
+            </div>
+
+            <!-- Timers -->
+            <div class="d-flex justify-content-between mt-2" style="font-size: 0.75rem; font-family: 'Geist Mono', monospace; color: var(--zinc-500);">
+              <span id="playerCurrentTime">14:20</span>
+              <span id="playerTotalTime">45:00</span>
+            </div>
+          </div>
+
+          <!-- Player Controls Row -->
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <!-- Left: Speed Selection -->
+            <div class="d-flex align-items-center gap-1.5">
+              <span style="font-size: 0.75rem; color: var(--zinc-500);">Speed:</span>
+              <div class="filter-chip-group">
+                <button type="button" class="filter-chip player-speed-btn" data-speed="0.75">0.75x</button>
+                <button type="button" class="filter-chip player-speed-btn active" data-speed="1.0">1.0x</button>
+                <button type="button" class="filter-chip player-speed-btn" data-speed="1.25">1.25x</button>
+                <button type="button" class="filter-chip player-speed-btn" data-speed="1.5">1.5x</button>
+              </div>
+            </div>
+
+            <!-- Center: Transport Controls -->
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn-action-icon" id="btnPlayerRewind" title="Rewind 15 seconds">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+              <button type="button" class="play-circle-btn" id="btnPlayerPlayToggle" title="Play / Pause">
+                <i class="bi bi-play-fill fs-5" id="playerPlayIcon"></i>
+              </button>
+              <button type="button" class="btn-action-icon" id="btnPlayerForward" title="Forward 15 seconds">
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
+            </div>
+
+            <!-- Right: Volume -->
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-volume-up text-muted" id="volumeIcon"></i>
+              <input type="range" class="form-range" id="volumeSlider" min="0" max="100" value="80" style="width: 80px; accent-color: var(--white);">
+            </div>
+          </div>
+
+          <!-- Show Notes & Synopsis Accordion -->
+          <div class="p-3 rounded" style="background-color: var(--zinc-900); border: 1px solid var(--border-default);">
+            <h6 class="fw-semibold text-white mb-2" style="font-size: 0.85rem;"><i class="bi bi-journal-text me-1.5"></i> Episode Synopsis &amp; Key Takeaways</h6>
+            <p class="mb-2" id="playerSynopsis" style="color: var(--zinc-400); font-size: 0.825rem; line-height: 1.5;">
+              In this episode, we dive deep into modern scalable architectures, database optimization, and resilient deployment practices.
+            </p>
+            <div class="d-flex flex-wrap gap-1 mt-2" id="playerTags">
+              <span class="topic-tag">#Architecture</span>
+              <span class="topic-tag">#Docker</span>
+              <span class="topic-tag">#PostgreSQL</span>
+              <span class="topic-tag">#SpringCloud</span>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer modal-footer-shadcn">
+          <button type="button" class="btn-shadcn-ghost" data-bs-dismiss="modal">Close Preview</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Episode Modal (Full In-Place Updating) -->
+  <div class="modal fade" id="editEpisodeModal" tabindex="-1" aria-labelledby="editModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-content-shadcn">
+        <div class="modal-header modal-header-shadcn">
+          <div class="d-flex align-items-center gap-2">
+            <div style="width: 8px; height: 8px; background-color: #3b82f6; border-radius: 50%;"></div>
+            <h5 class="modal-title fw-semibold text-white fs-6 mb-0" id="editModalTitle">Edit Episode Record</h5>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        
+        <form id="editEpisodeForm" novalidate>
+          <div class="modal-body p-4">
+            
+            <div class="mb-3">
+              <label class="form-label text-muted">Episode Record ID</label>
+              <input type="text" class="form-control" id="editEpisodeId" readonly style="font-family: 'Geist Mono', monospace; opacity: 0.7;">
+            </div>
+
+            <div class="mb-3">
+              <label for="editEpisodeTitle" class="form-label">Episode Title <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-control" id="editEpisodeTitle" required minlength="2" maxlength="150">
+              <div class="invalid-feedback-custom">Please enter a valid title.</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="editHostName" class="form-label">Host Name <span style="color: #ef4444;">*</span></label>
+              <input type="text" class="form-control" id="editHostName" required minlength="2" maxlength="100">
+              <div class="invalid-feedback-custom">Please enter a valid host name.</div>
+            </div>
+
+            <div class="row g-2">
+              <div class="col-6 mb-3">
+                <label for="editDurationMinutes" class="form-label">Duration (Mins) <span style="color: #ef4444;">*</span></label>
+                <input type="number" class="form-control" id="editDurationMinutes" required min="1" max="600">
+                <div class="invalid-feedback-custom">1 – 600 minutes.</div>
+              </div>
+              <div class="col-6 mb-3">
+                <label for="editReleaseDate" class="form-label">Release Date <span style="color: #ef4444;">*</span></label>
+                <input type="date" class="form-control" id="editReleaseDate" required>
+                <div class="invalid-feedback-custom">Valid date required.</div>
+              </div>
+            </div>
+
+          </div>
+          <div class="modal-footer modal-footer-shadcn">
+            <button type="button" class="btn-shadcn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn-shadcn-primary" id="btnSaveEdit">
+              <span id="btnEditSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" style="width: 13px; height: 13px;"></span>
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal (Shadcn Pure Dark) -->
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-content-shadcn">
+        <div class="modal-header modal-header-shadcn">
+          <div class="d-flex align-items-center gap-2">
+            <div style="width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%;"></div>
+            <h5 class="modal-title fw-semibold text-white fs-6 mb-0" id="deleteModalTitle">Delete Episode Record</h5>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="mb-3 text-white" style="font-size: 0.875rem;">Are you sure you want to permanently delete this podcast episode from PostgreSQL database?</p>
+          <div class="p-3 rounded" style="background-color: var(--zinc-900); border: 1px solid var(--border-default);">
+            <div class="small" style="color: var(--zinc-500); font-size: 0.75rem;">Target Record:</div>
+            <div class="fw-semibold text-white mt-1" id="deleteTargetTitle" style="font-size: 0.9rem;">Episode Title</div>
+            <div class="small mt-1" style="color: var(--zinc-400); font-family: 'Geist Mono', monospace;" id="deleteTargetMeta">ID: #0 &bull; Host: Unknown</div>
+          </div>
+          <p class="small mt-3 mb-0" style="color: var(--zinc-500); font-size: 0.775rem;">
+            This operation sends <code>DELETE /Delete/{id}</code> to the backend microservice.
+          </p>
+        </div>
+        <div class="modal-footer modal-footer-shadcn">
+          <button type="button" class="btn-shadcn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn-shadcn-destructive" id="btnConfirmDelete">
+            <span id="btnDeleteSpinner" class="spinner-border spinner-border-sm me-1.5 d-none" role="status" aria-hidden="true" style="width: 13px; height: 13px;"></span>
+            Delete Record
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Delete Confirmation Modal -->
+  <div class="modal fade" id="bulkDeleteConfirmModal" tabindex="-1" aria-labelledby="bulkDeleteModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-content-shadcn">
+        <div class="modal-header modal-header-shadcn">
+          <div class="d-flex align-items-center gap-2">
+            <div style="width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%;"></div>
+            <h5 class="modal-title fw-semibold text-white fs-6 mb-0" id="bulkDeleteModalTitle">Batch Delete Confirmation</h5>
+          </div>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="mb-3 text-white" style="font-size: 0.875rem;">
+            You are about to delete <strong id="bulkDeleteCount" class="text-white">0</strong> selected episode records from PostgreSQL.
+          </p>
+          <div class="p-3 rounded" style="background-color: var(--zinc-900); border: 1px solid var(--border-default); font-size: 0.8rem; color: var(--zinc-400);">
+            <i class="bi bi-exclamation-triangle text-warning me-1"></i> This action cannot be reversed. Each selected ID will be deleted via <code>DELETE /Delete/{id}</code>.
+          </div>
+        </div>
+        <div class="modal-footer modal-footer-shadcn">
+          <button type="button" class="btn-shadcn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn-shadcn-destructive" id="btnConfirmBulkDelete">
+            <span id="btnBulkDeleteSpinner" class="spinner-border spinner-border-sm me-1.5 d-none" role="status" aria-hidden="true" style="width: 13px; height: 13px;"></span>
+            Delete All Selected
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Minimalist Footer -->
+  <footer class="app-container text-center py-4 small border-top" style="border-color: var(--border-default) !important; color: var(--zinc-500);">
+    <p class="mb-1" style="font-size: 0.825rem;">&copy; 2026 PodcastHub &bull; Episode Management System</p>
+    <p class="mb-0" style="font-size: 0.75rem; color: var(--zinc-600);">SOA Docker Exam Full-Stack Task &bull; Student ID: <strong>2400030188</strong></p>
+  </footer>
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <!-- Application Logic -->
+  <script src="js/app.js?v=3.0"></script>
+</body>
+</html>
