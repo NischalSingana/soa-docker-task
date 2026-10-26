@@ -1,23 +1,50 @@
-# Eclipse / STS workspace metadata
+# ─── Java / Maven ───────────────────────────────────────
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+!**/target/*.jar
+
+# ─── IDE & Editor ───────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.eclipse/
 .metadata/
 .recommenders/
 .settings/
 .project
 .classpath
+*.sts4-cache
+.springBeans
+.factorypath
 
-# Maven build targets
-target/
-**/target/
-
-# Logs and runtime artifacts
-*.log
-*.class
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Frontend build outputs
+# ─── Node / Frontend ────────────────────────────────────
+node_modules/
 frontend/dist/
 dist/
-node_modules/
+npm-debug.log*
+yarn-error.log
+
+# ─── Logs & Runtime ─────────────────────────────────────
+*.log
+logs/
+*.pid
+
+# ─── OS Files ───────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# ─── Environment / Secrets ──────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Docker ─────────────────────────────────────────────
+docker-compose.override.yml

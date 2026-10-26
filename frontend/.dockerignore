@@ -1,3 +1,21 @@
+# Exclude Git metadata
 .git/
 .gitignore
+.gitattributes
+
+# Exclude other Dockerfiles & CI files (not needed in image)
 Dockerfile
+.dockerignore
+*.dockerfile
+
+# Exclude Node modules (reinstalled inside container)
+node_modules/
+npm-debug.log*
+
+# Exclude local build output (rebuilt inside container)
+dist/
+
+# Exclude OS & editor noise
+.DS_Store
+Thumbs.db
+*.log

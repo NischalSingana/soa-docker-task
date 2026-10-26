@@ -1,8 +1,26 @@
-!target/*.jar
+# Exclude Git metadata
 .git/
 .gitignore
+.gitattributes
+
+# Exclude other Dockerfiles & CI files
+Dockerfile
+.dockerignore
+*.dockerfile
+
+# Exclude Maven build output (rebuilt inside container via mvn package)
+target/
+
+# Exclude IDE & editor files
+.idea/
+*.iml
+.eclipse/
 .metadata/
 .settings/
-.classpath
 .project
+.classpath
+
+# Exclude OS & editor noise
+.DS_Store
+Thumbs.db
 *.log
