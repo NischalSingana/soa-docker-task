@@ -9,11 +9,19 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Dedicated volume avoids inheriting credentials from an unrelated local database.
+      - podcast_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d exam_2400030188"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - app-net
 
   backend:
+    build:
+      context: ./backend
     image: nischalsingana/docker-backend-2400030188:latest
     container_name: backend-container
     ports:
@@ -23,12 +31,15 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=root
     depends_on:
-      - postgresdb
+      postgresdb:
+        condition: service_healthy
     restart: on-failure
     networks:
       - app-net
 
   frontend:
+    build:
+      context: ./frontend
     image: nischalsingana/docker-frontend-2400030188:latest
     container_name: frontend-container
     ports:
@@ -40,7 +51,7 @@ services:
       - app-net
 
 volumes:
-  postgres_data:
+  podcast_data:
 
 networks:
   app-net:

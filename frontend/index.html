@@ -316,6 +316,10 @@
             </div>
 
             <!-- Export Tools Dropdown -->
+            <input type="file" id="importFileInput" class="d-none" accept=".csv,.json,application/json,text/csv" aria-label="Import podcast episodes from CSV or JSON">
+            <button type="button" class="btn-shadcn-ghost" id="btnImportData" title="Import episode records from a CSV or JSON file">
+              <i class="bi bi-upload me-1"></i> Import
+            </button>
             <div class="dropdown">
               <button class="btn-shadcn-ghost dropdown-toggle" type="button" id="exportDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-download me-1"></i> Export
@@ -691,6 +695,6 @@
   <!-- Bootstrap 5 Bundle JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   <!-- Application Logic -->
-  <script src="js/app.js?v=3.0"></script>
+  <script src="js/app.js?v=3.2"></script>
 </body>
 </html>

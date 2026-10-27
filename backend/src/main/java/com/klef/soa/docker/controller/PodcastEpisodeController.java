@@ -66,16 +66,11 @@ public class PodcastEpisodeController {
     @GetMapping("/DisplayAll")
     @Operation(summary = "Display all podcast episodes", description = "Fetches all saved podcast episodes")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved records"),
-            @ApiResponse(responseCode = "404", description = "No podcast episodes found")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved records (an empty array is returned when no records exist)")
     })
-    public ResponseEntity<?> displayAllEpisodes() {
+    public ResponseEntity<List<PodcastEpisodeResponseDTO>> displayAllEpisodes() {
         List<PodcastEpisodeResponseDTO> episodes = service.displayAllEpisodes();
-        if (episodes != null && !episodes.isEmpty()) {
-            return ResponseEntity.ok(episodes);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Podcast Episode Data Not Found");
-        }
+        return ResponseEntity.ok(episodes);
     }
 
     @GetMapping("/Get/{id}")

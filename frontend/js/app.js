@@ -4,12 +4,10 @@
  * SOA Full-Stack Docker Exam Project
  */
 
-// Determine API Base URL dynamically
+// Docker serves the frontend and proxies API routes through the same origin.
+// Keeping requests same-origin avoids browser/CORS and host-resolution issues.
 const getApiBaseUrl = () => {
-  if (window.location.port === '8081') {
-    return window.location.origin;
-  }
-  return 'http://localhost:8081';
+  return window.location.protocol === 'file:' ? 'http://localhost:8081' : window.location.origin;
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -88,6 +86,8 @@ const searchInput = document.getElementById('searchInput');
 const btnClearSearch = document.getElementById('btnClearSearch');
 const btnRefresh = document.getElementById('btnRefreshEpisodes');
 const refreshIcon = document.getElementById('refreshIcon');
+const btnImportData = document.getElementById('btnImportData');
+const importFileInput = document.getElementById('importFileInput');
 const selectAllCheckbox = document.getElementById('selectAllCheckbox');
 const tableRecordCountBadge = document.getElementById('tableRecordCountBadge');
 const filterActiveNotice = document.getElementById('filterActiveNotice');
@@ -324,6 +324,10 @@ function setupEventListeners() {
     copyMarkdownTable(episodesList);
   });
 
+  // Import records produced by the CSV/JSON export tools (or matching files).
+  btnImportData.addEventListener('click', () => importFileInput.click());
+  importFileInput.addEventListener('change', handleImportFile);
+
   // Audio Player Controls
   btnPlayerPlayToggle.addEventListener('click', toggleAudioPlay);
   btnPlayerRewind.addEventListener('click', () => scrubAudioBy(-15));
@@ -378,7 +382,7 @@ function setupViewMode(mode) {
 // Backend Health Check
 async function checkBackendHealth() {
   try {
-    const response = await fetch(`${API_BASE_URL}/`, { method: 'GET' });
+    const response = await fetch(`${API_BASE_URL}/DisplayAll`, { method: 'GET' });
     if (response.ok) {
       backendStatusBadge.className = 'badge-status-pill';
       backendStatusBadge.innerHTML = '<span class="status-dot-green"></span> Connected';
@@ -433,7 +437,7 @@ async function fetchEpisodes() {
   } catch (error) {
     console.error('Error fetching episodes:', error);
     showEmptyState(true);
-    showToast('Failed to reach backend service on port 8081.', 'danger');
+    showToast('Failed to reach the backend service. Check that the API is running.', 'danger');
     markBackendOffline();
   } finally {
     showLoading(false);
@@ -446,6 +450,11 @@ function updateHostFilterDropdown() {
   if (!hostMenu) return;
 
   const uniqueHosts = [...new Set(episodesList.map(ep => (ep.hostName || '').trim()).filter(Boolean))].sort();
+
+  if (currentHostFilter && !uniqueHosts.some(host => host.toLowerCase() === currentHostFilter.toLowerCase())) {
+    currentHostFilter = '';
+    document.getElementById('currentHostFilterLabel').textContent = 'All Hosts';
+  }
 
   let html = `<li><a class="dropdown-item dropdown-item-shadcn ${currentHostFilter === '' ? 'active' : ''}" href="#" data-host="">All Hosts</a></li>`;
   uniqueHosts.forEach(h => {
@@ -509,6 +518,10 @@ function getFilteredEpisodes() {
         return (a.episodeTitle || '').localeCompare(b.episodeTitle || '');
       case 'title-desc':
         return (b.episodeTitle || '').localeCompare(a.episodeTitle || '');
+      case 'host-asc':
+        return (a.hostName || '').localeCompare(b.hostName || '');
+      case 'host-desc':
+        return (b.hostName || '').localeCompare(a.hostName || '');
       case 'id-asc':
         return Number(a.id) - Number(b.id);
       case 'id-desc':
@@ -1068,9 +1081,10 @@ function handleScrubberClick(e) {
 async function seedMultipleEpisodes() {
   showToast('Seeding 4 demonstration episodes into PostgreSQL database...', 'info');
 
+  let createdCount = 0;
   for (const sample of SEED_DATASET) {
     try {
-      await fetch(`${API_BASE_URL}/Add`, {
+      const response = await fetch(`${API_BASE_URL}/Add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1080,12 +1094,18 @@ async function seedMultipleEpisodes() {
           releaseDate: sample.date
         })
       });
+      if (response.ok) createdCount++;
     } catch (e) {
       console.warn('Seed error:', e);
     }
   }
 
-  showToast('Demonstration episodes seeded successfully!', 'success');
+  showToast(
+    createdCount === SEED_DATASET.length
+      ? 'Demonstration episodes seeded successfully!'
+      : `Seeded ${createdCount} of ${SEED_DATASET.length} demonstration episodes.`,
+    createdCount === SEED_DATASET.length ? 'success' : 'warning'
+  );
   await fetchEpisodes();
 }
 
@@ -1139,6 +1159,165 @@ function exportToJSON(episodes, filename = 'episodes.json') {
   const blob = new Blob([jsonContent], { type: 'application/json' });
   downloadBlob(blob, filename);
   showToast(`Exported ${episodes.length} records to JSON`, 'success');
+}
+
+// Import utilities ---------------------------------------------------------
+// The import accepts the app's exports and conventional column names. IDs are
+// deliberately ignored: the backend remains the sole authority for IDs.
+async function handleImportFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  try {
+    if (file.size > 1024 * 1024) {
+      throw new Error('Choose a file smaller than 1 MB.');
+    }
+
+    btnImportData.disabled = true;
+    btnImportData.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Importing';
+
+    const records = await parseImportFile(file);
+    const { valid, skipped } = normaliseImportedEpisodes(records);
+
+    if (valid.length === 0) {
+      throw new Error('No valid, new episode records were found in this file.');
+    }
+    if (valid.length > 100) {
+      throw new Error('Import is limited to 100 records at a time.');
+    }
+
+    let imported = 0;
+    let failed = 0;
+    for (const episode of valid) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/Add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(episode)
+        });
+        if (response.status === 201) imported++;
+        else failed++;
+      } catch (error) {
+        failed++;
+      }
+    }
+
+    await fetchEpisodes();
+    const details = [
+      `${imported} ${imported === 1 ? 'episode' : 'episodes'} imported`,
+      skipped ? `${skipped} skipped` : '',
+      failed ? `${failed} failed` : ''
+    ].filter(Boolean).join(' · ');
+    showToast(details, failed ? 'warning' : 'success');
+  } catch (error) {
+    showToast(error.message || 'Unable to import this file.', 'danger');
+  } finally {
+    btnImportData.disabled = false;
+    btnImportData.innerHTML = '<i class="bi bi-upload me-1"></i> Import';
+    event.target.value = '';
+  }
+}
+
+async function parseImportFile(file) {
+  const text = (await file.text()).replace(/^\uFEFF/, '');
+  const isJson = file.name.toLowerCase().endsWith('.json') || file.type === 'application/json';
+
+  if (isJson) {
+    const data = JSON.parse(text);
+    if (!Array.isArray(data)) throw new Error('JSON imports must contain an array of episodes.');
+    return data;
+  }
+
+  const rows = parseCsv(text);
+  if (rows.length < 2) throw new Error('The CSV file needs a header row and at least one episode.');
+
+  const header = rows[0].map(value => value.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+  const indexFor = (...names) => header.findIndex(column => names.includes(column));
+  const titleIndex = indexFor('episodetitle', 'title');
+  const hostIndex = indexFor('hostname', 'host');
+  const durationIndex = indexFor('durationminutes', 'duration');
+  const dateIndex = indexFor('releasedate', 'date');
+  if ([titleIndex, hostIndex, durationIndex, dateIndex].some(index => index < 0)) {
+    throw new Error('CSV must include Episode Title, Host Name, Duration (Minutes), and Release Date columns.');
+  }
+
+  return rows.slice(1)
+    .filter(row => row.some(value => value.trim() !== ''))
+    .map(row => ({
+      episodeTitle: row[titleIndex],
+      hostName: row[hostIndex],
+      durationMinutes: row[durationIndex],
+      releaseDate: row[dateIndex]
+    }));
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let value = '';
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (char === '"') {
+      if (quoted && text[index + 1] === '"') {
+        value += '"';
+        index++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (char === ',' && !quoted) {
+      row.push(value);
+      value = '';
+    } else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && text[index + 1] === '\n') index++;
+      row.push(value);
+      rows.push(row);
+      row = [];
+      value = '';
+    } else {
+      value += char;
+    }
+  }
+  if (quoted) throw new Error('The CSV file has an unclosed quoted value.');
+  if (value || row.length) {
+    row.push(value);
+    rows.push(row);
+  }
+  return rows;
+}
+
+function normaliseImportedEpisodes(records) {
+  const existing = new Set(episodesList.map(episodeKey));
+  const batch = new Set();
+  const valid = [];
+  let skipped = 0;
+
+  records.forEach(record => {
+    const title = String(record?.episodeTitle ?? '').trim();
+    const host = String(record?.hostName ?? '').trim();
+    const duration = Number(record?.durationMinutes);
+    const releaseDate = String(record?.releaseDate ?? '').trim();
+    const isDate = /^\d{4}-\d{2}-\d{2}$/.test(releaseDate)
+      && new Date(`${releaseDate}T00:00:00Z`).toISOString().slice(0, 10) === releaseDate;
+    const episode = { episodeTitle: title, hostName: host, durationMinutes: duration, releaseDate };
+    const key = episodeKey(episode);
+
+    if (title.length < 2 || title.length > 150 || host.length < 2 || host.length > 100
+      || !Number.isInteger(duration) || duration < 1 || duration > 600 || !isDate
+      || existing.has(key) || batch.has(key)) {
+      skipped++;
+      return;
+    }
+    batch.add(key);
+    valid.push(episode);
+  });
+
+  return { valid, skipped };
+}
+
+function episodeKey(episode) {
+  return `${episode.episodeTitle || ''}\u0000${episode.hostName || ''}\u0000${episode.releaseDate || ''}`.toLocaleLowerCase();
 }
 
 function copyMarkdownTable(episodes) {
